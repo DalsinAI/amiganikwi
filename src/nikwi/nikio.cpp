@@ -27,6 +27,15 @@
 
 #include "nikwi.h"
 
+#ifdef __amigaos__
+/* the pack beside the program: "PROGDIR:" "/justdata.up" would be its
+   parent drawer to AmigaDOS */
+#define DATADIR "PROGDIR:"
+#define DATASEP ""
+#endif
+#ifndef DATASEP
+#define DATASEP "/"
+#endif
 #ifndef DATADIR
 #define DATADIR "."
 #endif
@@ -58,12 +67,12 @@ static unsigned int fread_uint_le(FILE *file)
 void initNikIO()
 {
 	FILE	*f;
-	packFileName = DATADIR "/justdata.up";
-	f = fopen(DATADIR "/justdata.up", "rb");
+	packFileName = DATADIR DATASEP "justdata.up";
+	f = fopen(DATADIR DATASEP "justdata.up", "rb");
 	if (!f)
 	{
-		packFileName = DATADIR "/justdata.sw";
-		f = fopen(DATADIR "/justdata.sw", "rb");
+		packFileName = DATADIR DATASEP "justdata.sw";
+		f = fopen(DATADIR DATASEP "justdata.sw", "rb");
 	}
 	if (f)
 	{
