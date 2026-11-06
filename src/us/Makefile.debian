@@ -1,0 +1,38 @@
+OUTPUT = libuscript.a
+CC = g++
+AR = ar
+CFLAGS = -g3 -mfpmath=sse -msse -Wall
+CPPFLAGS = 
+LDFLAGS = 
+
+CC = g++
+AR = ar
+
+OBJECTS = uscript.o bytecode.o script.o compiler.o vm.o type.o funcs.o consts.o
+HEADERS = uscript/uscript.h uscript/bytecode.h uscript/script.h uscript/compiler.h uscript/vm.h uscript/type.h uscript/funcs.h uscript/consts.h
+
+$(OUTPUT): $(OBJECTS)
+	rm -f $(OUTPUT)
+	$(AR) rcs $(OUTPUT) $(OBJECTS)
+
+.SUFFIXES : .c .cc .cpp .C .S .o
+
+# object from C
+.c.o :  $< $(HEADERS)
+	$(CC) -I. $(CFLAGS) -c $< -o $@
+
+# object from C++ (.cc, .cpp, .C files)
+.cc.o .cpp.o .C.o : $< $(HEADERS)
+	$(CC) -I. $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+
+# object from asm
+.S.o :
+	$(CC) $(ASMFLAGS) -c $< -o $@
+
+clean:
+	rm -f $(OBJECTS)
+
+distclean: clean
+	rm -f $(OUTPUT)
+
+.PHONY: clean distclean

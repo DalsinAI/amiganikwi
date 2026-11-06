@@ -1,0 +1,13 @@
+all: upack/upack bmp2ut/bmp2ut
+
+CC = gcc
+CFLAGS = -Wall -O2
+
+upack/upack: upack/upack.c
+	$(CC) $(CFLAGS) -o upack/upack upack/upack.c
+
+bmp2ut/bmp2ut: bmp2ut/bmp2ut.c
+	$(CC) $(CFLAGS) -o bmp2ut/bmp2ut bmp2ut/bmp2ut.c -lSDL
+
+clean:
+	rm -f upack/upack bmp2ut/bmp2ut

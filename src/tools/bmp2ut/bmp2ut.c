@@ -47,6 +47,12 @@ SDL_Surface	*mask = NULL;
 int		alpha = 0;
 int		halfBits = 0;
 
+static void fwrite_ushort_le(unsigned short value, FILE *file)
+{
+    fputc(value & 0xFF, file);
+    fputc(value >> 8, file);
+}
+
 void convert(void)
 {
 	char		id[3] = "UT";
@@ -68,10 +74,8 @@ void convert(void)
 	f = fopen(output, "wb");
 	fwrite(id, 3, 1, f);
 	fwrite(&flags, 1, 1, f);
-	wv = surf->w;
-	hv = surf->h;
-	fwrite(&wv, 2, 1, f);
-	fwrite(&hv, 2, 1, f);
+	fwrite_ushort_le(surf->w, f);
+	fwrite_ushort_le(surf->h, f);
 	rgb = (unsigned char*)surf->pixels;
 	mrgb = mask?((unsigned char*)mask->pixels):0;
 	for (i=0;i<surf->w*surf->h;i++)
@@ -91,7 +95,7 @@ void convert(void)
 		{
 			unsigned short	rgb;
 			rgb = (b >> 3)|((g >> 2) << 5)|((r >> 3) << 11);
-			fwrite(&rgb, 2, 1, f);
+			fwrite_ushort_le(rgb, f);
 		}
 		else
 		{

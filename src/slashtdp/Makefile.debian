@@ -1,0 +1,38 @@
+OUTPUT = libslashtdp.a
+CC = g++
+AR = ar
+CFLAGS = -g3 -mfpmath=sse -msse -Wall
+CPPFLAGS = 
+LDFLAGS = 
+
+CC = g++
+AR = ar
+
+OBJECTS = body.o world.o
+HEADERS = slashtdp/slashtdp.h
+
+$(OUTPUT): $(OBJECTS)
+	rm -f $(OUTPUT)
+	$(AR) rcs $(OUTPUT) $(OBJECTS)
+
+.SUFFIXES : .c .cc .cpp .C .S .o
+
+# object from C
+.c.o : $< $(HEADERS)
+	$(CC) -Iinclude $(CFLAGS) -c $< -o $@
+
+# object from C++ (.cc, .cpp, .C files)
+.cc.o .cpp.o .C.o : $< $(HEADERS)
+	$(CC) -I. $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+
+# object from asm
+.S.o :
+	$(CC) $(ASMFLAGS) -c $< -o $@
+
+clean:
+	rm -f $(OBJECTS)
+
+distclean: clean
+	rm -f $(OUTPUT)
+
+.PHONY: clean distclean

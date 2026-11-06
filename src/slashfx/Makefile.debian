@@ -1,0 +1,25 @@
+OUTPUT = libslashfx.a
+CC = g++
+AR = ar
+CFLAGS = -g3 -O3 -mfpmath=sse -msse -Wall
+LDFLAGS = 
+
+CALLCC = $(CC) $(CFLAGS) -I.
+
+CC = gcc
+AR = ar
+
+$(OUTPUT): main.o
+	rm -f $(OUTPUT)
+	$(AR) rcs $(OUTPUT) main.o
+
+main.o: main.c slashfx.h
+	$(CALLCC) -c main.c -o main.o 
+
+clean:
+	rm -f main.o
+
+distclean: clean
+	rm -f $(OUTPUT)
+
+.PHONY: clean distclean

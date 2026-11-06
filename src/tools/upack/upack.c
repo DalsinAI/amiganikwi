@@ -49,6 +49,20 @@ char		*input = "data";
 char		*output = "justdata.up";
 FILE		*f;
 
+static void fwrite_ushort_le(unsigned short value, FILE *file)
+{
+	fputc(value & 0xFF, file);
+	fputc(value >> 8, file);
+}
+
+static void fwrite_uint_le(unsigned int value, FILE *file)
+{
+	fputc(value & 0xFF, file);
+	fputc((value >> 8) & 0xFF, file);
+	fputc((value >> 16) & 0xFF, file);
+	fputc(value >> 24, file);
+}
+
 static void addEntry(char *name, unsigned int pos, unsigned int size)
 {
 	DirEntry	*de = malloc(sizeof(DirEntry));
@@ -79,7 +93,6 @@ static void startPackage(void)
 {
 	char		id[2] = "UP";
 	char		version = 1;
-	unsigned int	dirPlace = 0;
 	f = fopen(output, "wb");
 	if (!f)
 	{
@@ -88,9 +101,9 @@ static void startPackage(void)
 	}
 	fwrite(id, 2, 1, f);
 	fwrite(&version, 1, 1, f);
-	fwrite(&dirPlace, 4, 1, f);
-	fwrite(&entryCount, 4, 1, f);
-	fwrite(&priority, 4, 1, f);
+	fwrite_uint_le(0, f);
+	fwrite_uint_le(0, f);
+	fwrite_uint_le(priority, f);
 }
 
 static void saveDirectoryEntries()
@@ -101,14 +114,14 @@ static void saveDirectoryEntries()
 	for (;de;de = de->next)
 	{
 		unsigned short	len = strlen(de->name);
-		fwrite(&len, 2, 1, f);
+		fwrite_ushort_le(len, f);
 		fwrite(de->name, len, 1, f);
-		fwrite(&de->pos, 4, 1, f);
-		fwrite(&de->size, 4, 1, f);
+		fwrite_uint_le(de->pos, f);
+		fwrite_uint_le(de->size, f);
 	}
 	fseek(f, 3, SEEK_SET);
-	fwrite(&dirPlace, 4, 1, f);
-	fwrite(&entryCount, 4, 1, f);
+	fwrite_uint_le(dirPlace, f);
+	fwrite_uint_le(entryCount, f);
 	printf("%i entries written\n", entryCount);
 }
 
@@ -146,9 +159,9 @@ static void packFile(char *filename, char *entryname)
 
 static void scanDirectory(char *dirname, char *path)
 {
-	DIR		*dir;
+	int		n;
 	char		*spath;
-	struct dirent	*de;
+	struct dirent	*de, **namelist;
 	if (chdir(dirname))
 		return;
 	
@@ -157,15 +170,15 @@ static void scanDirectory(char *dirname, char *path)
 		sprintf(spath, "%s/%s", path, dirname);
 	else
 		sprintf(spath, "%s", dirname);
-	dir = opendir(".");
-	if (!dir)
-	{
+	n = scandir(".", &namelist, 0, alphasort);
+	if (n < 0) {
 		chdir("..");
 		printf("cannot open `%s'\n", dirname);
 		return;
 	}
-	while ((de = readdir(dir)))
+	while (n--)
 	{
+		de = namelist[n];
 		if (!strcmp(de->d_name, ".") || !strcmp(de->d_name, ".."))
 			continue;
 		if (chdir(de->d_name))
@@ -186,8 +199,9 @@ static void scanDirectory(char *dirname, char *path)
 			}
 			scanDirectory(de->d_name, spath);
 		}
+		free(de);
 	}
-	closedir(dir);
+	free(namelist);
 		
 	free(spath);
 	chdir("..");

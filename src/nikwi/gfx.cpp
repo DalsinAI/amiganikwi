@@ -37,21 +37,19 @@ bool		fullscreen = false;
 
 static SDL_Joystick	*joy = NULL;
 
+static unsigned short read_ushort_le(unsigned char* data)
+{
+	return data[0] | data[1] << 8;
+}
+
 SDL_Surface *createSurface(int width, int height, bool colorKey)
 {
 	SDL_Surface	*surf;
 	Uint32		rm, gm, bm;
 
-	#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-	#error makeit
-	rm = 0xFF000000;
-	gm = 0x00FF0000;
-	bm = 0x0000FF00;
-	#else
 	rm = 0x0000001F;
 	gm = 0x000007E0;
 	bm = 0x0000F800;
-	#endif
 	
 	if (screen && screen->format)
 	{
@@ -89,14 +87,8 @@ SDL_Surface *loadImage(String file)
 		return NULL;
 	}
 	pixels = (unsigned short*)&data[8];
-	#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-	#error redo
-	width = (data[0] << 8)|data[1];
-	height = (data[2] << 8)|data[3];
-	#else
-	width = *((unsigned short*)(data + 4));
-	height = *((unsigned short*)(data + 6));
-	#endif
+	width = read_ushort_le(data + 4);
+	height = read_ushort_le(data + 6);
 	
 	surf = createSurface(width, height);
 	if (!surf)
@@ -118,7 +110,7 @@ SDL_Surface *loadImage(String file)
 			int	gv = pixels[index++];
 			int	bv = pixels[index++];
 			*/
-			unsigned int	pixel = pixels[index++];
+			unsigned int	pixel = read_ushort_le((unsigned char*) &pixels[index++]);
 			int		rv, gv, bv;
 			
 			bv = (pixel&31) << 3;

@@ -23,6 +23,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 #include <math.h>
 #include <slashfx.h>
@@ -46,8 +47,8 @@ typedef struct _Effect
 	double		squarization;
 	double		delay, delayAmp;
 	double		purify;
-	int		waveFuncCode;
-	int		length;
+	unsigned int	waveFuncCode;
+	unsigned int	length;
 	int		upHerz;
 	
 	Envelope	freqEnv;
@@ -89,18 +90,37 @@ static void readBuffer(Buffer *buffer, void *data, int length)
 	buffer->position += length;
 }
 
+static uint32_t readBuffer32(Buffer *buffer)
+{
+	uint8_t b1 = buffer->data[buffer->position++];
+	uint8_t b2 = buffer->data[buffer->position++];
+	uint8_t b3 = buffer->data[buffer->position++];
+	uint8_t b4 = buffer->data[buffer->position++];
+
+	return b1 | b2 << 8 | b3 << 16 | b4 << 24;
+}
+
+static double readBufferDouble(Buffer *buffer)
+{
+	union { uint64_t i; double d; } conv;
+
+	conv.i = readBuffer32(buffer);
+	conv.i |= (uint64_t) readBuffer32(buffer) << 32;
+	return conv.d;
+}
+
 static void readEnvelope(Buffer *fb, Envelope *e)
 {
 	int	i;
 	
-	readBuffer(fb, &e->size, sizeof(int));
+	e->size = readBuffer32(fb);
 	e->x = malloc(sizeof(double)*e->size);
 	e->y = malloc(sizeof(double)*e->size);
 	
 	for (i=0;i<e->size;i++)
 	{
-		readBuffer(fb, &e->x[i], sizeof(double));
-		readBuffer(fb, &e->y[i], sizeof(double));
+		e->x[i] = readBufferDouble(fb);
+		e->y[i] = readBufferDouble(fb);
 	}
 }
 
@@ -111,8 +131,8 @@ int ssfxLoadEffectFromMemory(char *ptr, short **wave, unsigned int *length)
 	char		version;
 	Effect		fx;
 	int		i, Fp, Vp, DP, Fnpp, Vnpp, wlength;
-	double		T, P, F, V, Fs, Vs, SP, len, sample;
-	double		(*waveFunc)(double);
+	double		T, F, V, Fs, Vs, SP, len, sample;
+	double		(*waveFunc)(double) = NULL;
 	double		*fwave;
 	
 	readBuffer(fb, id, 4);
@@ -129,14 +149,14 @@ int ssfxLoadEffectFromMemory(char *ptr, short **wave, unsigned int *length)
 		return 0;
 	}
 	
-	readBuffer(fb, &fx.globalVol, sizeof(double));
-	readBuffer(fb, &fx.squarization, sizeof(double));
-	readBuffer(fb, &fx.delay, sizeof(double));
-	readBuffer(fb, &fx.delayAmp, sizeof(double));
-	readBuffer(fb, &fx.purify, sizeof(double));
-	readBuffer(fb, &fx.waveFuncCode, sizeof(int));
-	readBuffer(fb, &fx.length, sizeof(int));
-	readBuffer(fb, &fx.upHerz, sizeof(int));
+	fx.globalVol = readBufferDouble(fb);
+	fx.squarization = readBufferDouble(fb);
+	fx.delay = readBufferDouble(fb);
+	fx.delayAmp = readBufferDouble(fb);
+	fx.purify = readBufferDouble(fb);
+	fx.waveFuncCode = readBuffer32(fb);
+	fx.length = readBuffer32(fb);
+	fx.upHerz = readBuffer32(fb);
 	
 	readEnvelope(fb, &fx.freqEnv);
 	readEnvelope(fb, &fx.volEnv);
