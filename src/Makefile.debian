@@ -1,0 +1,33 @@
+SLASHFX = slashfx/libslashfx.a
+ADDCFG = badcfg/libbadcfg.a
+SLASHTDP = slashtdp/libslashtdp.a
+USCRIPT = us/libuscript.a
+
+CFLAGS = -Wall -O2
+
+all: nikwi/nikwi
+
+nikwi/nikwi: $(SLASHFX) $(ADDCFG) $(SLASHTDP) $(USCRIPT)
+	cd nikwi;	make -f Makefile.debian CFLAGS="$(CFLAGS)"
+
+$(SLASHFX):
+	cd slashfx; make -f Makefile.debian CFLAGS="$(CFLAGS)"
+
+$(ADDCFG):
+	cd badcfg; make -f Makefile.debian CFLAGS="$(CFLAGS)"
+
+$(SLASHTDP):
+	cd slashtdp; make -f Makefile.debian CFLAGS="$(CFLAGS)"
+
+$(USCRIPT):
+	cd us; make -f Makefile.debian CFLAGS="$(CFLAGS)"
+
+clean:
+	cd nikwi;	make clean -f Makefile.debian
+	cd slashfx;	make clean -f Makefile.debian
+	cd badcfg;	make clean -f Makefile.debian
+	cd slashtdp;	make clean -f Makefile.debian
+	cd us;	make clean -f Makefile.debian
+	cd tools;	make -f Makefile.debian clean
+	-rm -rf `find . -name "*.o"`
+	-rm -rf `find . -name "*.a"`

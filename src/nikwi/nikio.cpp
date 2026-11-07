@@ -27,6 +27,19 @@
 
 #include "nikwi.h"
 
+#ifdef __amigaos__
+/* the pack beside the program: "PROGDIR:" "/justdata.up" would be its
+   parent drawer to AmigaDOS */
+#define DATADIR "PROGDIR:"
+#define DATASEP ""
+#endif
+#ifndef DATASEP
+#define DATASEP "/"
+#endif
+#ifndef DATADIR
+#define DATADIR "."
+#endif
+
 struct PackEntry
 {
 	String	name;
@@ -39,21 +52,33 @@ static String		packFileName;
 static uint		dirPlace, entryCount;
 static PackEntry	*entry;
 
+static unsigned short fread_ushort_le(FILE *file)
+{
+	unsigned char lsb = (unsigned char) fgetc(file);
+	return lsb | ((unsigned char) fgetc(file)) << 8;
+}
+
+static unsigned int fread_uint_le(FILE *file)
+{
+	unsigned short lsw = fread_ushort_le(file);
+	return lsw | fread_ushort_le(file) << 16;
+}
+
 void initNikIO()
 {
 	FILE	*f;
-	packFileName = "justdata.up";
-	f = fopen("justdata.up", "rb");
+	packFileName = DATADIR DATASEP "justdata.up";
+	f = fopen(DATADIR DATASEP "justdata.up", "rb");
 	if (!f)
 	{
-		packFileName = "justdata.sw";
-		f = fopen("justdata.sw", "rb");
+		packFileName = DATADIR DATASEP "justdata.sw";
+		f = fopen(DATADIR DATASEP "justdata.sw", "rb");
 	}
 	if (f)
 	{
 		fseek(f, 3, SEEK_SET);
-		fread(&dirPlace, 4, 1, f);
-		fread(&entryCount, 4, 1, f);
+		dirPlace = fread_uint_le(f);
+		entryCount = fread_uint_le(f);
 		fseek(f, dirPlace, SEEK_SET);
 		entry = (PackEntry*)malloc(sizeof(PackEntry)*entryCount);
 		for (uint i=0;i<entryCount;i++)
@@ -61,12 +86,12 @@ void initNikIO()
 			unsigned short	len;
 			uint		start, size;
 			String		name;
-			fread(&len, 2, 1, f);
+			len = fread_ushort_le(f);
 			name = (String)malloc(len + 1);
 			fread(name, len, 1, f);
 			name[len] = 0;
-			fread(&start, 4, 1, f);
-			fread(&size, 4, 1, f);
+			start = fread_uint_le(f);
+			size = fread_uint_le(f);
 			entry[i].name = name;
 			entry[i].start = start;
 			entry[i].size = size;

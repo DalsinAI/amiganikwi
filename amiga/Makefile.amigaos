@@ -1,0 +1,103 @@
+# Nikwi 0.0.20120213 for AmigaOS 3.x, 68040/68060 + FPU, on OpenGPU's SDL
+# 1.2 (sdl12-compat).
+#
+#   make -f amiga/Makefile.amigaos -j2 dist \
+#        STOVE=/path/to/openamigagcc-16.2.0-open4 \
+#        NDK=/path/to/OpenNDK/Include_H SDLKIT=/path/to/opengpu-sdk
+#
+# src/Makefile.debian's nikwi and its four libraries (slashfx, badcfg,
+# slashtdp, us), the game's pack justdata.up beside the program. SDLKIT is
+# the OpenGPU developer kit: libSDL.a, sdl12-compat on SDL2.module; Nikwi
+# needs nothing else (its sound is slashfx's own mixer on SDL's audio).
+# The pack is made as Debian's makedata.sh and makepack.sh make it: the
+# pictures converted to UT by amiga/tools/bmp2ut.py (src/tools/bmp2ut's
+# conversion, without the host's SDL), then src/tools/upack built for the
+# host and run.
+
+STOVE   ?= $(HOME)/CradleLab/toolchain/openamigagcc-16.2.0-open4-x86_64-linux
+NDK     ?= $(HOME)/CradleLab/gfopensdk/OpenNDK/Include_H
+SDLKIT  ?= /mnt/amigachrome/team2/deps/opengpu-sdk
+CC      = $(STOVE)/bin/m68k-amigaos-gcc
+CXX     = $(STOVE)/bin/m68k-amigaos-g++
+STRIP   = $(STOVE)/bin/m68k-amigaos-strip
+HOSTCC  ?= gcc
+CPU     ?= -m68040 -m68881
+# -fno-tree-loop-distribute-patterns: GCC 16's loop miscompile (the kit's
+# sdl2-config gives it for GCC 16 too).
+OPT     ?= -O2 -fomit-frame-pointer -fno-tree-loop-distribute-patterns
+
+BUILD   = build/amigaos
+OBJDIR  = $(BUILD)/obj
+PROG    = Nikwi
+OUT     = dist/Nikwi
+
+DEFS    = -D__amigaos__ -DNDEBUG
+INC     = -Isrc/us -Isrc/badcfg -Isrc/slashtdp -Isrc/slashfx -I$(SDLKIT)/include/SDL \
+          -I$(SDLKIT)/include
+CFLAGS  = -noixemul $(OPT) $(CPU) -fno-common -MMD -MP -w
+CXXFLAGS = $(CFLAGS) $(DEFS) $(INC) -std=gnu++98 -include amiga/amiga_prefix.hpp
+LDFLAGS = -noixemul $(CPU)
+LIBS    = -L$(SDLKIT)/lib -lSDL -lpthread -lm
+
+CSRC    = src/slashfx/main.c src/badcfg/main.c amiga/stack.c
+CXXSRC  = $(addprefix src/slashtdp/,body.cpp world.cpp) \
+          $(addprefix src/us/,bytecode.cpp compiler.cpp consts.cpp funcs.cpp script.cpp type.cpp \
+            uscript.cpp vm.cpp) \
+          $(addprefix src/nikwi/,main.cpp gfx.cpp sprites.cpp nikio.cpp utils.cpp tiles.cpp \
+            world.cpp objects.cpp motion.cpp screens.cpp editor.cpp game.cpp menu.cpp \
+            imageScreen.cpp transitions.cpp ending.cpp sound.cpp)
+OBJS    = $(CSRC:%.c=$(OBJDIR)/%.o) $(CXXSRC:%.cpp=$(OBJDIR)/%.o)
+ICONS   = $(wildcard amiga/icons/*.info)
+
+all: $(BUILD)/$(PROG)
+
+$(BUILD)/$(PROG): $(OBJS)
+	$(CXX) $(LDFLAGS) -o $@.debug $(OBJS) $(LIBS)
+	$(STRIP) -o $@ $@.debug
+
+$(OBJDIR)/%.o: %.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -std=gnu99 $(DEFS) $(INC) -c -o $@ $<
+
+$(OBJDIR)/%.o: %.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+# the game's pack, as makedata.sh and makepack.sh make it (in the build
+# directory, the source tree left as it is)
+PACK    = $(BUILD)/pack
+$(BUILD)/upack: src/tools/upack/upack.c
+	@mkdir -p $(dir $@)
+	$(HOSTCC) -O2 -o $@ $<
+
+$(PACK)/justdata.up: $(BUILD)/upack amiga/tools/bmp2ut.py
+	rm -rf $(PACK) && mkdir -p $(PACK)
+	cp -R data $(PACK)/data
+	mkdir -p $(PACK)/data/tiles $(PACK)/data/objects $(PACK)/img
+	cp -R images/tiles images/objects $(PACK)/img/
+	python3 amiga/tools/bmp2ut.py $(PACK)/img/tiles/* $(PACK)/img/objects/*
+	mv $(PACK)/img/tiles/*.ut $(PACK)/data/tiles/
+	mv $(PACK)/img/objects/*.ut $(PACK)/data/objects/
+	cd $(PACK) && ./../upack
+
+# The drawer: the program and justdata.up (the game's pictures, worlds,
+# scripts, sounds and music); ReadMe, upstream's readme and manual, and the
+# licence.
+dist: $(BUILD)/$(PROG) $(PACK)/justdata.up $(ICONS) AMIGA_PORT.md
+	rm -rf $(OUT) && mkdir -p $(OUT)
+	cp $(BUILD)/$(PROG) $(PACK)/justdata.up $(OUT)/
+	cp AMIGA_PORT.md $(OUT)/ReadMe
+	cp readme.txt $(OUT)/ReadMe-upstream
+	cp -R manual $(OUT)/manual
+	cp license.txt $(OUT)/COPYING.txt
+	cp amiga/icons/Nikwi.info amiga/icons/ReadMe.info $(OUT)/
+	for f in ReadMe-upstream COPYING.txt; do cp amiga/icons/ReadMe.info $(OUT)/$$f.info; done
+	cp amiga/icons/Folder.info $(OUT)/manual.info
+	cp amiga/icons/Nikwi-drawer.info dist/Nikwi.info
+
+-include $(OBJS:.o=.d)
+
+clean:
+	rm -rf $(BUILD)
+
+.PHONY: all clean dist

@@ -1,0 +1,47 @@
+OUTPUT = nikwi
+CC = g++
+LD = g++
+CFLAGS = -Wall -g3 -DDATADIR="\".\""
+CPPFLAGS = 
+INCLUDES = -I../us -I../badcfg -I../slashtdp -I../slashfx
+LDFLAGS = -O 
+LIBS = -lSDL -L../us -L../badcfg -L../slashtdp -L../slashfx -luscript -lbadcfg -lslashtdp -lslashfx
+
+CC = g++
+AR = ar
+
+OBJECTS = main.o gfx.o sprites.o nikio.o utils.o tiles.o \
+	world.o objects.o motion.o screens.o editor.o game.o \
+	menu.o imageScreen.o transitions.o ending.o sound.o
+HEADERS = nikwi.h gfx.h sprites.h nikio.h utils.h tiles.h \
+	world.h objects.h motion.h screens.h editor.h game.h \
+	menu.h imageScreen.h transitions.h ending.h sound.h
+
+$(OUTPUT): $(OBJECTS)
+	rm -f $(OUTPUT)
+	$(LD) $(OBJECTS) -o $(OUTPUT) $(LDFLAGS) $(LIBS)
+
+.SUFFIXES : .c .cc .cpp .C .S .o
+
+# object from C
+.c.o :  $< $(HEADERS)
+	$(CC) $(INCLUDES) $(CFLAGS) -c $< -o $@
+
+# object from C++ (.cc, .cpp, .C files)
+.cc.o .cpp.o .C.o : $< $(HEADERS)
+	$(CC) $(INCLUDES) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+
+# object from asm
+.S.o :
+	$(CC) $(ASMFLAGS) -c $< -o $@
+
+clean:
+	rm -f $(OBJECTS)
+	rm -f justdata.up
+	rm -f images/tiles/*.ut images/objects/*.ut
+	rm -rf data/tiles data/objects
+
+distclean: clean
+	rm -f $(OUTPUT)
+
+.PHONY: clean distclean

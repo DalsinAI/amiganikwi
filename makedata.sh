@@ -20,6 +20,9 @@ for FILE in `ls images/objects/`; do
 
 done;
 
+test -d data/tiles || mkdir data/tiles
 mv images/tiles/*.ut data/tiles
+
+test -d data/objects || mkdir data/objects
 mv images/objects/*.ut data/objects
 

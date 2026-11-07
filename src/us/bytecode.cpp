@@ -61,11 +61,11 @@ void UScriptByteCode::putInt(uint addr, int i)
 
 void UScriptByteCode::putFloat(uint addr, float f)
 {
+	union { int i; float f; } conv;
+
 	makeRoom(addr + 4);
-	bc[addr++] = ((unsigned char*)(&f))[0];
-	bc[addr++] = ((unsigned char*)(&f))[1];
-	bc[addr++] = ((unsigned char*)(&f))[2];
-	bc[addr] = ((unsigned char*)(&f))[3];
+	conv.f = f;
+	putInt(addr, conv.i);
 }
 
 void UScriptByteCode::addByte(unsigned char b)
@@ -98,7 +98,9 @@ int UScriptByteCode::getInt(uint addr)
 
 float UScriptByteCode::getFloat(uint addr)
 {
-	return *((float*)&bc[addr]);
+	union { int i; float f; } conv;
+	conv.i = getInt(addr);
+	return conv.f;
 }
 
 String UScriptByteCode::getSS(uint index)

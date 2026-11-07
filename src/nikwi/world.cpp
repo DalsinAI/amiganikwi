@@ -29,6 +29,20 @@
 
 World	*world = NULL;
 
+static uint read_uint_le(const void *data)
+{
+	unsigned char *ptr = (unsigned char *) data;
+	return ptr[0] | ptr[1] << 8 | ptr[2] << 16 | ptr[3] << 24;
+}
+
+static void fwrite_uint_le(uint value, FILE *file)
+{
+	fputc(value & 0xFF, file);
+	fputc((value >> 8) & 0xFF, file);
+	fputc((value >> 16) & 0xFF, file);
+	fputc(value >> 24, file);
+}
+
 //World
 World::World()
 {
@@ -103,15 +117,15 @@ void World::loadWorld(String file)
 	uint	*tileCode, *iv;
 	if (!data)
 		return;
-	newWorld(*((uint*)&data[0]), *((uint*)&data[4]));
+	newWorld(read_uint_le(data), read_uint_le(data + 4));
 	tileCode = (uint*)&data[8];
 	for (uint y=0;y<height;y++)
 	{
 		for (uint x=0;x<width;x++,tileCode++)
 		{
-			if (*tileCode)
+			if (read_uint_le(tileCode))
 			{
-				tile[y*width + x] = new Tile(*tileCode);
+				tile[y*width + x] = new Tile(read_uint_le(tileCode));
 				tile[y*width + x]->x = x*32;
 				tile[y*width + x]->y = y*32;
 			}
@@ -120,14 +134,14 @@ void World::loadWorld(String file)
 
 	prepareForPhysics();
 
-	oc = *tileCode;
+	oc = read_uint_le(tileCode);
 	iv = ++tileCode;
 	for (uint i=0;i<oc;i++)
 	{
-		uint	code = *(iv++);
-		uint	flags = (*(iv++))&0x1;
-		int	x = (int)*(iv++);
-		int	y = (int)*(iv++);
+		uint	code = read_uint_le(iv++);
+		uint	flags = read_uint_le(iv++) & 0x1;
+		int	x = (int) read_uint_le(iv++);
+		int	y = (int) read_uint_le(iv++);
 		Object	*obj = createObject(code, x, y);
 		obj->state->mirror = flags;
 		if (code == makeCode("hero"))
@@ -139,8 +153,8 @@ void World::loadWorld(String file)
 		}
 		obj->init();
 	}
-	bgnd = *(iv++);
-	bgndImage = *iv;
+	bgnd = read_uint_le(iv++);
+	bgndImage = read_uint_le(iv);
 	free(data);
 	
 	refreshStaticPart = true;
@@ -159,27 +173,27 @@ void World::saveWorld(String file)
 {
 	FILE	*f = fopen(file, "wb");
 	uint	oc = 0;
-	fwrite(&width, 4, 1, f);
-	fwrite(&height, 4, 1, f);
+	fwrite_uint_le(width, f);
+	fwrite_uint_le(height, f);
 	for (uint i=0;i<width*height;i++)
 	{
 		if (tile[i])
-			fwrite(&tile[i]->tclass->code, 4, 1, f);
+			fwrite_uint_le(tile[i]->tclass->code, f);
 		else
-			fwrite(&tile[i], 4, 1, f);	//zero//
+			fwrite_uint_le(0, f);
 	}
 	for (Object *obj=firstObject;obj;obj = obj->next)
 		oc++;
-	fwrite(&oc, 4, 1, f);
+	fwrite_uint_le(oc, f);
 	for (Object *obj=firstObject;obj;obj = obj->next)
 	{
-		fwrite(&obj->oclass->code, 4, 1, f);
-		fwrite(&obj->state->mirror, 4, 1, f);
-		fwrite(&obj->x, 4, 1, f);
-		fwrite(&obj->y, 4, 1, f);
+		fwrite_uint_le(obj->oclass->code, f);
+		fwrite_uint_le(obj->state->mirror, f);
+		fwrite_uint_le(obj->x, f);
+		fwrite_uint_le(obj->y, f);
 	}
-	fwrite(&bgnd, 4, 1, f);
-	fwrite(&bgndImage, 4, 1, f);
+	fwrite_uint_le(bgnd, f);
+	fwrite_uint_le(bgndImage, f);
 	fclose(f);
 }
 

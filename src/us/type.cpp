@@ -69,7 +69,7 @@ UScriptTypeField *UScriptType::getField(String name)
 //Globals
 void usInitTypeSubSystem()
 {
-	UScriptType	*type;
+	//UScriptType	*type;
 
 	usInteger = usRegisterType("int", USB_INTEGER);
 	usFloat = usRegisterType("float", USB_FLOAT);
