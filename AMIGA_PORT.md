@@ -71,5 +71,5 @@ Licences
 
 Nikwi's program (src/): zlib licence. Its pictures, levels, sounds, music
 and everything else: WTFPL (COPYING.txt, upstream's license.txt). The
-Amiga files (amiga/): the AmiCradle Team, zlib licence; the icon is
-upstream's nikwi.ico.
+Amiga files (amiga/): the AmiCradle Team, zlib licence; the icons are
+our own GlowIcons (amiga/icons/art/nikwi.svg).
