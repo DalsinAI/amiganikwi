@@ -87,6 +87,7 @@ dist: $(BUILD)/$(PROG) $(PACK)/justdata.up $(ICONS) AMIGA_PORT.md
 	rm -rf $(OUT) && mkdir -p $(OUT)
 	cp $(BUILD)/$(PROG) $(PACK)/justdata.up $(OUT)/
 	cp AMIGA_PORT.md $(OUT)/ReadMe
+	cp amiga/Controls $(OUT)/Controls
 	cp readme.txt $(OUT)/ReadMe-upstream
 	cp -R manual $(OUT)/manual
 	cp license.txt $(OUT)/COPYING.txt
