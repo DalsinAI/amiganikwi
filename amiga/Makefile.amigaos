@@ -92,7 +92,6 @@ dist: $(BUILD)/$(PROG) $(PACK)/justdata.up $(ICONS) AMIGA_PORT.md
 	cp license.txt $(OUT)/COPYING.txt
 	cp amiga/icons/Nikwi.info amiga/icons/ReadMe.info $(OUT)/
 	for f in ReadMe-upstream COPYING.txt; do cp amiga/icons/ReadMe.info $(OUT)/$$f.info; done
-	cp amiga/icons/Folder.info $(OUT)/manual.info
 	cp amiga/icons/Nikwi-drawer.info dist/Nikwi.info
 
 -include $(OBJS:.o=.d)
